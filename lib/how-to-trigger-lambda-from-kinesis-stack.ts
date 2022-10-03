@@ -1,16 +1,27 @@
-import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as cdk from '@aws-cdk/core';
+import * as kinesis from '@aws-cdk/aws-kinesis';
+import * as lambda from '@aws-cdk/aws-lambda';
+import * as lambdaEventSources from '@aws-cdk/aws-lambda-event-sources';
 
 export class HowToTriggerLambdaFromKinesisStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const stream = new kinesis.Stream(this, 'MyKinesisStream', {
+      streamName: 'MyKinesisStream',
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'HowToTriggerLambdaFromKinesisQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const lambdaFunction = new lambda.Function(this, 'Function', {
+      code: lambda.Code.fromAsset('src'),
+      handler: 'index.handler',
+      functionName: 'KinesisMessageHandler',
+      runtime: lambda.Runtime.NODEJS_12_X,
+    });
+
+    const eventSource = new lambdaEventSources.KinesisEventSource(stream, {
+      startingPosition: lambda.StartingPosition.TRIM_HORIZON,
+    });
+
+    lambdaFunction.addEventSource(eventSource);
   }
 }
